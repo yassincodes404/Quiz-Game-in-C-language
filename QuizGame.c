@@ -269,6 +269,7 @@ void initUserAndGameSettings(struct Player *player) {
 
 
 void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, struct MediumQuestionList mediumQuestions, struct HardQuestionList hardQuestions);
+void startQuizGame(struct Player *player, struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions);
 
 int main() {
     // init player's data and games Questions 
