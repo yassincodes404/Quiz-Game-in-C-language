@@ -208,7 +208,7 @@ void displayPlayerData(struct Player *player) {
     printf("---------------------------------------------------\n"); 
     printf("Player Data:\n");
     printf("Player Name: %s\n", player->name);
-    printf("Score: %d\n", player->score);
+    printf("Total Score: %d\n", player->score);
     printf("Duration Mode: %d minutes\n", player->settings.durationMode);
     printf("Difficulty Mode: %d\n", player->settings.difficultyMode);
     printf("Number of Questions: %d\n", player->settings.questionNumber);
@@ -385,7 +385,7 @@ void startQuizGame(struct Player *player , struct EasyQuestionList *easyQuestion
         }
     }
 
-    updatePlayerScore(player, score);
+    updatePlayerScore(&player, score);
 
     printf("You answered %d out of %d questions correctly.\n", correctAnswers, questionCount);
     printf("Your final score is: %d\n", score);
@@ -393,9 +393,7 @@ void startQuizGame(struct Player *player , struct EasyQuestionList *easyQuestion
     updatePlayerData(player, score, player->settings);
 }
 
-void updatePlayerScore(struct Player player, int score) {
-    player.score = score; 
-}
+
 
 
 
