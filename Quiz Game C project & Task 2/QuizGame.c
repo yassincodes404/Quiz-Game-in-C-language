@@ -3,8 +3,6 @@
 #include <string.h>
 #include <ctype.h>
 
-
-
 struct Question {
     char question[256];
     char options[4][20];
@@ -514,183 +512,136 @@ void initUserAndGameSettings(struct Player *player) {
 void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, struct MediumQuestionList mediumQuestions, struct HardQuestionList hardQuestions);
 void startQuizGame(struct Player *player, struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions);
 
-Absolutely! Here's the **next section** of your bilingual 🇬🇧/🇪🇬 **Obsidian note**, documenting the remaining code block with clear **function-by-function explanation**, icons, and localized context to help your instructor understand the thought process and logic.
+int main() {
+    // init player's data and games Questions 
+    struct Player player;
+    struct EasyQuestionList easyQuestions;
+    struct MediumQuestionList mediumQuestions;
+    struct HardQuestionList hardQuestions;
 
----
+   generateEasyQuestions(&easyQuestions);
+   generateMediumQuestions(&mediumQuestions);
+   generateHardQuestions(&hardQuestions);
 
-## 🧾 Player Data, Settings & Initialization (EN / 🇪🇬 AR)
+    
+    initUserAndGameSettings(&player);
+   
+    mainPage(&player, easyQuestions, mediumQuestions, hardQuestions);
 
----
+    savePlayerData(&player);
+    return 0;
+}
 
-### ⌛ `DurationModeValidation`, `DifficultyModeValidation`, `QuestionNumberValidation`
+void changePlayerName(struct Player *player) {
+    bool validName = false;
+    while (!validName) {
+        printf("Enter new player name: ");
+        scanf("%49s", player->name);
+        if (nameValidation(player->name)) {
+            validName = true; // Valid name, exit loop
+        } else {
+            printf("Invalid name. Please try again.\n");
+        }
+    }
+    updatePlayerData(player, player->score, player->settings);
+    printf("Player name changed to: %s\n", player->name);
+}
 
-> ```c
-> bool DurationModeValidation(int durationMode) { ... }
-> bool DifficultyModeValidation(int difficultyMode) { ... }
-> bool QuestionNumberValidation(int questionNumber) { ... }
-> ```
+void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, struct MediumQuestionList mediumQuestions, struct HardQuestionList hardQuestions) {
+    
+    WelcomePage();
+    int choice;
+    do {
+        printf("\nMain Menu:\n");
+        printf("1. Start Quiz\n");
+        printf("2. Change Settings\n");
+        printf("3. Change Player Name\n");
+        printf("4. View Player Data and Settings\n");
+        printf("5. Close Game\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
 
-- **EN:** Each function checks if the user input falls within valid limits.
-- **AR:** كل دالة بتتأكد إن القيم المدخلة من اللاعب جوه الحدود المسموح بيها.
+        switch (choice) {
+            case 1:
+                startQuizGame(player, &easyQuestions, &mediumQuestions, &hardQuestions);
+                break;
+            case 2:
+                changePlayerSettings(player);
+                savePlayerData(player);
+                break;
+            case 3:
+                changePlayerName(player);
+                break;
+            case 4:
+                loadPlayerData(player);
+                displayPlayerData(player);
+                break;
+            case 5:
+                printf("Closing the game. Goodbye!\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 5);
+}
 
-| Function | Valid Range | ✅ Example | ❌ Invalid |
-|----------|-------------|------------|------------|
-| `DurationModeValidation` | 1–60 mins | 5 | 0, 70 |
-| `DifficultyModeValidation` | 1–3      | 2 | 5     |
-| `QuestionNumberValidation` | 1–100   | 10 | 150   |
 
-> **EN:** Returns `true` if input is valid, else prints an error.
->
-> **AR:** لو القيمة صح بترجع `true`، لو لأ بتطبع رسالة خطأ.
 
----
+void startQuizGame(struct Player *player , struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions) {
+    int score = 0;
+    int questionCount = player->settings.questionNumber;
+    int questionDuration = player->settings.questionDuration;
 
-### 💾 `savePlayerData`
+    struct Question *questions = NULL;
+    int totalQuestions = 0;
 
-> ```c
-> void savePlayerData(struct Player *player)
-> ```
+    if (player->settings.difficultyMode == 1) {
+        questions = easyQuestions->questions;
+        totalQuestions = easyQuestions->currentFilledIndex;
+    } else if (player->settings.difficultyMode == 2) {
+        questions = mediumQuestions->questions;
+        totalQuestions = mediumQuestions->currentFilledIndex;
+    } else {
+        questions = hardQuestions->questions;
+        totalQuestions = hardQuestions->currentFilledIndex;
+    }
 
-- **EN:** Saves the current player's information and settings to `player_data.txt`.
-- **AR:** بيحفظ بيانات اللاعب الحالية وإعداداته في ملف `player_data.txt`.
+    int correctAnswers = 0;
 
-**Stored Data Includes:**
-- Name
-- Score
-- Duration
-- Difficulty
-- Number of Questions
-- Question Duration
+    for (int i = 0; i < questionCount && i < totalQuestions; i++) {
+        struct Question currentQuestion = questions[i];
 
-**Example | مثال:**
-```txt
-Ahmed
-15
-2
-1
-5
-30
-```
+        printf("Question %d: %s\n", i + 1, currentQuestion.question);
+        for (int j = 0; j < 4; j++) {
+            printf("%d. %s\n", j + 1, currentQuestion.options[j]);
+        }
 
----
+        int answer;
+        printf("Enter your answer (1-4) or 0 to quit: ");
+        scanf("%d", &answer);
 
-### 📋 `displayPlayerData`
+        if (answer == 0) {
+            printf("You chose to quit the quiz.\n");
+            break;
+        }
 
-> ```c
-> void displayPlayerData(struct Player *player)
-> ```
+        if (answer - 1 == currentQuestion.correctOption) {
+            printf("Correct!\n");
+            score++;
+            correctAnswers++;
+        } else {
+            printf("Wrong! The correct answer is: %s\n", currentQuestion.options[currentQuestion.correctOption]);
+        }
+    }
 
-- **EN:** Nicely displays the player’s name, score, and all current settings.
-- **AR:** بيعرض بيانات اللاعب بشكل منظم، زي الاسم والسكور والإعدادات.
+    updatePlayerScore(player, score);
 
-**Sample Output | شكل المخرجات:**
-```
-Player Name: Ahmed
-Total Score: 20
-Duration Mode: 2 minutes
-Difficulty Mode: 1
-Number of Questions: 5
-Question Duration: 30 seconds
-```
+    printf("You answered %d out of %d questions correctly.\n", correctAnswers, questionCount);
+    printf("Your final score is: %d\n", score);
 
-> **Tip | نصيحة:** Great for debug and player review.
+    updatePlayerData(player, score, player->settings);
+}
 
----
-
-### 📈 `updatePlayerScore`
-
-> ```c
-> void updatePlayerScore(struct Player *player, int score)
-> ```
-
-- **EN:** Increases the player's total score.
-- **AR:** بيزوّد سكور اللاعب على السكور الحالي.
-
-> ✅ Simple addition operation.
-
----
-
-### ⚙️ `updatePlayerSettings`
-
-> ```c
-> void updatePlayerSettings(struct Player *player, struct playerSettings settings)
-> ```
-
-- **EN:** Replaces the current player settings with a new configuration.
-- **AR:** بيبدل إعدادات اللاعب بالإعدادات الجديدة اللي اتحددت.
-
----
-
-### 🧩 `updatePlayerData`
-
-> ```c
-> void updatePlayerData(struct Player *player, int score, struct playerSettings settings)
-> ```
-
-- **EN:** A compound function that updates both the score and settings, then saves them.
-- **AR:** دالة مركبة بتحدث السكور والإعدادات، وبتحفظهم في الملف.
-
-**Steps | الخطوات:**
-1. Calls `updatePlayerScore()`
-2. Calls `updatePlayerSettings()`
-3. Opens file and writes updated values
-
----
-
-### 🚀 `initUserAndGameSettings`
-
-> ```c
-> void initUserAndGameSettings(struct Player *player)
-> ```
-
-- **EN:** Initializes the player for the session. If it’s the first time, it prompts for name and sets default settings. Otherwise, loads saved data.
-- **AR:** بتهيأ اللاعب في أول تشغيل. لو أول مرة، بيطلب اسم وبيحط إعدادات افتراضية. غير كده، بيحمل البيانات من الملف.
-
-**Default Settings (for new users):**
-| Setting           | Value         |
-|-------------------|---------------|
-| Duration Mode     | 1 minute      |
-| Difficulty Mode   | Easy (1)      |
-| Number of Questions | 5           |
-| Question Duration | 30 seconds    |
-
----
-
-### 🧭 `mainPage` (Declared)
-
-> ```c
-> void mainPage(struct Player *player, ...);
-> ```
-
-- **EN:** Will display the main menu and handle user choices like starting quiz or changing settings.
-- **AR:** هتعرض الصفحة الرئيسية فيها اختيارات اللعبة زي بدء الكويز أو تعديل الإعدادات.
-
----
-
-### 🎮 `startQuizGame` (Declared)
-
-> ```c
-> void startQuizGame(struct Player *player, ...);
-> ```
-
-- **EN:** Declared function to handle the quiz game itself.
-- **AR:** دي دالة هتشغل الكويز فعليًا.
-
----
-
-## 📌 Summary Table
-
-| 🔧 Function               | 🧠 Purpose                             | 🌐 الشرح بالعربي                           |
-|---------------------------|----------------------------------------|--------------------------------------------|
-| `DurationModeValidation()`| Validate time input                    | التحقق من الوقت                            |
-| `savePlayerData()`        | Save player info to file               | حفظ البيانات                                |
-| `displayPlayerData()`     | Print current settings                 | عرض إعدادات وبيانات اللاعب                 |
-| `updatePlayerData()`      | Update score + settings + save         | تحديث البيانات والسكور والحفظ              |
-| `initUserAndGameSettings()`| Start player session                  | بداية تشغيل اللعبة والإعدادات              |
-
----
-
-Let me know when you're ready to continue with the next functions like `mainPage()` and `startQuizGame()` or others. I’ll keep the same style and clarity.
 
 
 
