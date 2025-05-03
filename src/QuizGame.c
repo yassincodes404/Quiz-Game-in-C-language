@@ -562,7 +562,12 @@ void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, stru
         printf("4. View Player Data and Settings\n");
         printf("5. Close Game\n");
         printf("Enter your choice: ");
-        scanf("%d", &choice);
+        
+        if (scanf("%d", &choice) != 1) {
+            while (getchar() != '\n');
+            printf("Invalid input. Please enter a number between 1 and 5.\n");
+            continue;
+        }
 
         switch (choice) {
             case 1:
@@ -589,21 +594,20 @@ void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, stru
 }
 
 
-
 void handleTimeLogic(int *questionDuration, int *answer, bool *answered) {
     time_t startTime = time(NULL);
 
     while (true) {
         time_t currentTime = time(NULL);
         int timeElapsed = currentTime - startTime;
-        int timeLeft = questionDuration - timeElapsed;
+        int timeLeft = *questionDuration - timeElapsed;
 
         if (timeLeft <= 0) {
             printf("\nTime's up! You took too long to answer.\n");
             break;
         }
 
-        printf("\rTime left: %d seconds. Enter your answer (1-4) or 0 to quit: ", timeLeft);
+        printf("\rTime left: %d seconds. Enter your answer (1-4) or 0 to skip the Questions: ", timeLeft);
         fflush(stdout);
 
         fd_set inputSet;
