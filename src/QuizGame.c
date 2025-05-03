@@ -590,7 +590,7 @@ void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, stru
 
 
 
-void startQuizGame(struct Player *player , struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions) {
+void startQuizGame(struct Player *player, struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions) {
     int score = 0;
     int questionCount = player->settings.questionNumber;
     int questionDuration = player->settings.questionDuration;
@@ -619,46 +619,71 @@ void startQuizGame(struct Player *player , struct EasyQuestionList *easyQuestion
             printf("%d. %s\n", j + 1, currentQuestion.options[j]);
         }
 
-        int answer;
-        printf("Enter your answer (1-4) or 0 to quit (You have %d seconds): ", questionDuration);
+        printf("You have %d seconds to answer.\n", questionDuration);
 
-        fd_set set;
-        struct timeval timeout;
-        FD_ZERO(&set);
-        FD_SET(STDIN_FILENO, &set);
+        int answer = -1;
+        time_t startTime = time(NULL);
+        bool answered = false;
 
-        timeout.tv_sec = questionDuration;
-        timeout.tv_usec = 0;
+        while (true) {
+            time_t currentTime = time(NULL);
+            int timeElapsed = currentTime - startTime;
+            int timeLeft = questionDuration - timeElapsed;
 
-        int rv = select(STDIN_FILENO + 1, &set, NULL, NULL, &timeout);
-        if (rv == -1) {
-            perror("select"); // Error occurred
-            continue;
-        } else if (rv == 0) {
-            printf("\nTime's up! You took too long to answer.\n");
-            continue;
-        } else {
-            scanf("%d", &answer);
+            if (timeLeft <= 0) {
+                printf("\nTime's up! You took too long to answer.\n");
+                break;
+            }
+
+            printf("\rTime left: %d seconds. Enter your answer (1-4) or 0 to quit: ", timeLeft);
+            fflush(stdout);
+
+            fd_set inputSet;
+            struct timeval timeout;
+            FD_ZERO(&inputSet);
+            FD_SET(STDIN_FILENO, &inputSet);
+
+            timeout.tv_sec = 1; // Check every second
+            timeout.tv_usec = 0;
+
+            int result = select(STDIN_FILENO + 1, &inputSet, NULL, NULL, &timeout);
+
+            if (result > 0) {
+                if (scanf("%d", &answer) == 1) {
+                    if (answer == 0) {
+                        printf("\nYou chose to quit the quiz.\n");
+                        return;
+                    } else if (answer >= 1 && answer <= 4) {
+                        answered = true;
+                        break;
+                    } else {
+                        printf("\nInvalid input. Please enter a number between 1 and 4.\n");
+                    }
+                } else {
+                    // Clear invalid input
+                    while (getchar() != '\n');
+                    printf("\nInvalid input. Please try again.\n");
+                }
+            }
         }
 
-        if (answer == 0) {
-            printf("You chose to quit the quiz.\n");
-            break;
+        if (!answered) {
+            continue;
         }
 
         if (answer - 1 == currentQuestion.correctOption) {
-            printf("Correct!\n");
+            printf("\nCorrect!\n");
             score++;
             correctAnswers++;
         } else {
-            printf("Wrong! The correct answer is: %s\n", currentQuestion.options[currentQuestion.correctOption]);
+            printf("\nWrong! The correct answer is: %s\n", currentQuestion.options[currentQuestion.correctOption]);
         }
     }
 
     updatePlayerScore(player, score);
 
-    printf("You answered %d out of %d questions correctly.\n", correctAnswers, questionCount);
-    printf("Your final score is: %d\n", score);
+    printf("\nYou answered %d out of %d questions correctly.\n", correctAnswers, questionCount);
+    printf("Your final score is: %d\n", player->score);
 
     updatePlayerData(player, score, player->settings);
 }
