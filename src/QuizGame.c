@@ -590,6 +590,52 @@ void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, stru
 
 
 
+void handleTimeLogic(int *questionDuration, int *answer, bool *answered) {
+    time_t startTime = time(NULL);
+
+    while (true) {
+        time_t currentTime = time(NULL);
+        int timeElapsed = currentTime - startTime;
+        int timeLeft = questionDuration - timeElapsed;
+
+        if (timeLeft <= 0) {
+            printf("\nTime's up! You took too long to answer.\n");
+            break;
+        }
+
+        printf("\rTime left: %d seconds. Enter your answer (1-4) or 0 to quit: ", timeLeft);
+        fflush(stdout);
+
+        fd_set inputSet;
+        struct timeval timeout;
+        FD_ZERO(&inputSet);
+        FD_SET(STDIN_FILENO, &inputSet);
+
+        timeout.tv_sec = 1; 
+        timeout.tv_usec = 0;
+
+        int result = select(STDIN_FILENO + 1, &inputSet, NULL, NULL, &timeout);
+
+        if (result > 0) {
+            if (scanf("%d", answer) == 1) {
+                if (*answer == 0) {
+                    printf("\nYou chose to quit the quiz.\n");
+                    return;
+                } else if (*answer >= 1 && *answer <= 4) {
+                    *answered = true;
+                    break;
+                } else {
+                    printf("\nInvalid input. Please enter a number between 1 and 4.\n");
+                }
+            } else {
+                // Clear invalid input
+                while (getchar() != '\n');
+                printf("\nInvalid input. Please try again.\n");
+            }
+        }
+    }
+}
+
 void startQuizGame(struct Player *player, struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions) {
     int score = 0;
     int questionCount = player->settings.questionNumber;
@@ -622,50 +668,9 @@ void startQuizGame(struct Player *player, struct EasyQuestionList *easyQuestions
         printf("You have %d seconds to answer.\n", questionDuration);
 
         int answer = -1;
-        time_t startTime = time(NULL);
         bool answered = false;
 
-        while (true) {
-            time_t currentTime = time(NULL);
-            int timeElapsed = currentTime - startTime;
-            int timeLeft = questionDuration - timeElapsed;
-
-            if (timeLeft <= 0) {
-                printf("\nTime's up! You took too long to answer.\n");
-                break;
-            }
-
-            printf("\rTime left: %d seconds. Enter your answer (1-4) or 0 to quit: ", timeLeft);
-            fflush(stdout);
-
-            fd_set inputSet;
-            struct timeval timeout;
-            FD_ZERO(&inputSet);
-            FD_SET(STDIN_FILENO, &inputSet);
-
-            timeout.tv_sec = 1; // Check every second
-            timeout.tv_usec = 0;
-
-            int result = select(STDIN_FILENO + 1, &inputSet, NULL, NULL, &timeout);
-
-            if (result > 0) {
-                if (scanf("%d", &answer) == 1) {
-                    if (answer == 0) {
-                        printf("\nYou chose to quit the quiz.\n");
-                        return;
-                    } else if (answer >= 1 && answer <= 4) {
-                        answered = true;
-                        break;
-                    } else {
-                        printf("\nInvalid input. Please enter a number between 1 and 4.\n");
-                    }
-                } else {
-                    // Clear invalid input
-                    while (getchar() != '\n');
-                    printf("\nInvalid input. Please try again.\n");
-                }
-            }
-        }
+        handleTimeLogic(questionDuration, &answer, &answered);
 
         if (!answered) {
             continue;
