@@ -590,6 +590,79 @@ void mainPage(struct Player *player, struct EasyQuestionList easyQuestions, stru
 
 
 
+void startQuizGame(struct Player *player , struct EasyQuestionList *easyQuestions, struct MediumQuestionList *mediumQuestions, struct HardQuestionList *hardQuestions) {
+    int score = 0;
+    int questionCount = player->settings.questionNumber;
+    int questionDuration = player->settings.questionDuration;
+
+    struct Question *questions = NULL;
+    int totalQuestions = 0;
+
+    if (player->settings.difficultyMode == 1) {
+        questions = easyQuestions->questions;
+        totalQuestions = easyQuestions->currentFilledIndex;
+    } else if (player->settings.difficultyMode == 2) {
+        questions = mediumQuestions->questions;
+        totalQuestions = mediumQuestions->currentFilledIndex;
+    } else {
+        questions = hardQuestions->questions;
+        totalQuestions = hardQuestions->currentFilledIndex;
+    }
+
+    int correctAnswers = 0;
+
+    for (int i = 0; i < questionCount && i < totalQuestions; i++) {
+        struct Question currentQuestion = questions[i];
+
+        printf("Question %d: %s\n", i + 1, currentQuestion.question);
+        for (int j = 0; j < 4; j++) {
+            printf("%d. %s\n", j + 1, currentQuestion.options[j]);
+        }
+
+        int answer;
+        printf("Enter your answer (1-4) or 0 to quit (You have %d seconds): ", questionDuration);
+
+        fd_set set;
+        struct timeval timeout;
+        FD_ZERO(&set);
+        FD_SET(STDIN_FILENO, &set);
+
+        timeout.tv_sec = questionDuration;
+        timeout.tv_usec = 0;
+
+        int rv = select(STDIN_FILENO + 1, &set, NULL, NULL, &timeout);
+        if (rv == -1) {
+            perror("select"); // Error occurred
+            continue;
+        } else if (rv == 0) {
+            printf("\nTime's up! You took too long to answer.\n");
+            continue;
+        } else {
+            scanf("%d", &answer);
+        }
+
+        if (answer == 0) {
+            printf("You chose to quit the quiz.\n");
+            break;
+        }
+
+        if (answer - 1 == currentQuestion.correctOption) {
+            printf("Correct!\n");
+            score++;
+            correctAnswers++;
+        } else {
+            printf("Wrong! The correct answer is: %s\n", currentQuestion.options[currentQuestion.correctOption]);
+        }
+    }
+
+    updatePlayerScore(player, score);
+
+    printf("You answered %d out of %d questions correctly.\n", correctAnswers, questionCount);
+    printf("Your final score is: %d\n", score);
+
+    updatePlayerData(player, score, player->settings);
+}
+
 
 
 
